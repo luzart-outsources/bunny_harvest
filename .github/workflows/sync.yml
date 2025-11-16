@@ -1,0 +1,45 @@
+name: Sync Without Keeping History
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+
+      - name: Clear old code
+        run: |
+          git rm -r --cached . || true
+          rm -rf ./* || true
+          rm -rf .git || true
+
+      - name: Clone source repo
+        run: |
+          git clone https://github.com/duykien12022000/Bunny-Harvest.git temp
+
+      - name: Copy source code (without .git)
+        run: |
+          rsync -av --exclude='.git' temp/ .
+          rm -rf temp
+
+      - name: Commit & push new code
+        env:
+          TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          git init
+          git config user.email "galuathancongz@gmail.com"
+          git config user.name "galuathancongz"
+
+          git add .
+          git commit -m "Sync latest from Bunny-Harvest"
+          git branch -M main
+
+          git remote remove origin || true
+          git remote add origin https://$TOKEN@github.com/luzart-outsources/bunny_harvest.git
+          git push -f origin main
